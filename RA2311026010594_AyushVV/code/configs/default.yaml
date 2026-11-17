@@ -1,0 +1,66 @@
+# ===================================================================
+# OSAP-Net default configuration (single source of truth for FJ3 code)
+# Values match the Master Research Specification v1.0.
+# ===================================================================
+seed_list: [0, 1, 2]
+device: auto                       # auto | cpu | cuda
+
+paths:
+  data_root: data/CWRU-dataset     # folder with CWRU .mat files (any layout)
+  outputs: outputs
+
+data:
+  window: 2048                     # samples per window (~0.17 s at 12 kHz)
+  train_stride: 512                # overlapping windows for TRAIN classes only
+  split_ratio: 0.5                 # eval recordings: first half support, second half query
+  loads: [0, 1, 2, 3]
+
+classes:                           # fault-condition-disjoint split
+  train: [Normal, IR007, IR021, B007, OR007@6, OR021@6, OR007@3, OR021@12]
+  val:   [B021, OR007@12, OR021@3]
+  test:  [IR014, B014, OR014@6, IR028, B028]
+  cross_domain: [FE-IR014, FE-B014, FE-IR021, FE-B021, FE-OR007@3]
+
+model:
+  embed_dim: 100
+
+train:                             # episodic training (ProtoNet, OSAP-Net, ablations)
+  episodes: 4000
+  n_known: 5
+  n_unknown: 2                     # pseudo-unknown classes per training episode
+  k_shot_range: [1, 10]            # K sampled uniformly per episode
+  q_known: 15
+  q_unknown: 10
+  lr: 0.001
+  weight_decay: 0.0001
+  lr_step: 1000                    # StepLR: lr *= 0.5 every lr_step episodes
+  val_every: 250
+  val_episodes: 100
+  open_loss:
+    lambda_ent: 0.5
+    lambda_margin: 0.1
+    m_in: 1.5
+    m_out: 4.0
+
+siamese:                           # base paper (Zhang et al. 2019) training
+  iterations: 15000                # as in the official base-paper code
+  batch_size: 32                   # half same-class, half different-class pairs
+  lr: 0.001
+  val_every: 500
+
+supervised:
+  pretrain_epochs: 30              # transfer baseline: pretrain on base classes
+  batch_size: 64
+  lr: 0.001
+  scratch_steps: 100               # conventional CNN trained on K-shot support only
+
+eval:
+  n_known: 3                       # test: 3 known + 2 unknown of the 5 test classes
+  q_per_class: 15
+  episodes: 600                    # per shot setting per seed
+  supervised_episodes: 100         # scratch CNN is slow -> fewer episodes
+  shots: [1, 3, 5, 10]
+  target_frr: 0.05                 # tau from validation known-class scores
+  noise_snr_db: [-4, 0, 4, 8]
+  noise_shot: 5
+  val_n_known: 2                   # val: 2 known + 1 unknown of 3 val classes

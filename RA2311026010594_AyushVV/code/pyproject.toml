@@ -1,0 +1,7 @@
+[project]
+name = "osapnet"
+version = "1.0.0"
+description = "Open-Set Attentive Prototypical Network for few-shot detection of rare and unseen bearing faults"
+requires-python = ">=3.9"
+[tool.setuptools.packages.find]
+where = ["src"]
